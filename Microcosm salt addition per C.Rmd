@@ -1,0 +1,278 @@
+---
+title: "Microcosm salt addition experiment (per g C)"
+output: html_document
+---
+## Oxic CO2 per g C
+```{r Oxic CO2 per g C}
+knitr::opts_chunk$set(echo = TRUE)
+Oxic_d78<-read.csv("data/Oxic_d78.csv")
+library(lattice)
+library(plyr)
+library(Rmisc)
+#reorder the sequence
+Oxic_d78$salinity<-factor(Oxic_d78$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+Oxic_d78$plot<-factor(Oxic_d78$plot,levels =c('3_4','4_4','6_4','8_4','2_4','10_4','4_4_H','20_4') )
+Oxic_d78$Sites<-factor(Oxic_d78$plot,levels =c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3') )
+
+## Mixed effect model
+library(Matrix)
+library(lme4)
+library(lmerTest)
+#using depth as random effect, didn't use this result in paper,just for reference
+Oxic_d78_lmer<-lmer(d78~salinity*Cl_field+(1|plot/depth),data=Oxic_d78,
+           na.action=na.exclude)
+summary(Oxic_d78_lmer)
+summary(anova(Oxic_d78_lmer))
+#subset 0-5 depth (using this result in the paper)
+Oxic_d78_0_5<-subset(Oxic_d78,depth=="0_5")
+Oxic_d78_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=Oxic_d78_0_5,
+                    na.action=na.exclude)
+summary(Oxic_d78_0_5_lmer)
+
+###Below are the code for seperate the sites to oli and brac, and doing the random effect analysis seperately, probably doesn't make sense.
+
+# Sepatate the Oligohaline and Brackish sites
+Oxic_d78<-read.csv("data/Oxic_d78.csv")
+Oxic_d78_Oli<-subset(Oxic_d78,Sites=="O_1"|Sites=="O_2"|Sites=="O_3"|Sites=="O_4"|Sites=="O_5")
+Oxic_d78_Brac<-subset(Oxic_d78,Sites=="B_1"|Sites=="B_2"|Sites=="B_3")
+Oxic_d78_Oli$Sites<-factor(Oxic_d78_Oli$Sites,levels =c('O_1','O_2','O_3','O_4','O_5'))
+Oxic_d78_Oli$salinity<-factor(Oxic_d78_Oli$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+Oxic_d78_Brac$Sites<-factor(Oxic_d78_Brac$Sites,levels =c('B_1','B_2','B_3'))
+Oxic_d78_Brac$salinity<-factor(Oxic_d78_Brac$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+
+names(Oxic_d78_Oli)
+
+#subset 0-5 depth
+Oxic_d78_Oli_0_5<-subset(Oxic_d78_Oli,depth=="0_5")
+Oxic_d78_Brac_0_5<-subset(Oxic_d78_Brac,depth=="0_5")
+#reorder
+Oxic_d78_Brac_0_5$salinity<-factor(Oxic_d78_Brac_0_5$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+#for oligohaline sites
+Oxic_d78_Oli_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=Oxic_d78_Oli_0_5,
+                            na.action=na.exclude)
+summary(Oxic_d78_Oli_0_5_lmer)
+#for brackish sites
+Oxic_d78_Brac_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=Oxic_d78_Brac_0_5,
+                             na.action=na.exclude)
+summary(Oxic_d78_Brac_0_5_lmer)
+
+
+####point+line plot,(using TRE.DIW, WHICH means treatment/DIW) made on 3/17/2017
+Oxic_tre_DIW<-read.csv("data/Oxic_tre_DIW.csv")
+names(Oxic_tre_DIW)
+Oxic_tre_DIW_AVE_STD_tmp<-summarySE(Oxic_tre_DIW,measurevar = "TRE.DIW",groupvars = c("Sites","depth","salinity"))
+Oxic_tre_DIW_AVE_STD_Cl<-summarySE(Oxic_tre_DIW,measurevar = "Cl_field",groupvars = c("Sites","depth","salinity"))
+Cl_field<-Oxic_tre_DIW_AVE_STD_Cl$Cl_field
+Oxic_tre_DIW_AVE_STD<-cbind(Oxic_tre_DIW_AVE_STD_tmp,Cl_field)
+
+#subset depth 0-5cm
+Oxic_tre_DIW_AVE_STD_0_5<-subset(Oxic_tre_DIW_AVE_STD,depth == '0_5')
+#reorder
+Oxic_tre_DIW_AVE_STD_0_5$Sites<-factor(Oxic_tre_DIW_AVE_STD_0_5$Sites,levels = c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+Oxic_tre_DIW_AVE_STD_0_5$salinity<-factor(Oxic_tre_DIW_AVE_STD_0_5$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+
+#plot
+library(ggplot2)
+mytheme <- theme_bw()+
+  theme(text = element_text(size=14, lineheight=.8))+
+  theme(panel.border = element_rect(colour = "black", size = 1)) +
+  theme(legend.key = element_rect(fill = "white",colour = "white"))+
+  theme(axis.title.x = element_text( size = 16)) +
+  theme(axis.title.y = element_text( size = 20)) +
+  theme(axis.text.x = element_text(size = 18, color = "black")) +
+  theme(axis.text.y = element_text(size = 18, color = "black")) +
+  theme(axis.line.x = element_blank()) +
+  theme(axis.line.y = element_blank()) +
+  theme(panel.grid = element_blank())
+
+g_point_oxic <- ggplot(Oxic_tre_DIW_AVE_STD_0_5, aes(x=Cl_field,y=TRE.DIW,color=salinity))
+p_point_oxic<-g_point_oxic + 
+  geom_point()+
+  geom_line(size=1)+
+  geom_hline(yintercept = 1,color="black",linetype=2)+
+  geom_vline(xintercept = 3,color="black",linetype=2)+
+  scale_x_log10(breaks=c(0.1,0.2,2.5,5,10,19))+
+  ylim(0, 2.3)+
+  labs(y=expression(Oxic~C~mineralization))+
+  geom_errorbar(aes(ymin= TRE.DIW-se, ymax=TRE.DIW+se),width=0.03,size=1)+
+  annotate("text", x = 0.5, y = 2, label = "Oligohaline sites",size=7)+
+  annotate("text", x = 8, y = 2, label = "Brackish sites",size=7)+
+  mytheme+
+  theme(axis.title.x = element_blank(),
+        legend.position=c(0.86,0.2),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = 0.7))
+p_point_oxic
+```
+
+## Anoxic CO2 per g C
+```{r Anoxic CO2 per g C}
+CO2_Anoxic_d78<-read.csv("data/CO2_Anoxic_d78.csv")
+library(lattice)
+library(plyr)
+library(Rmisc)
+#reorder
+CO2_Anoxic_d78$salinity<-factor(CO2_Anoxic_d78$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+CO2_Anoxic_d78$plot<-factor(CO2_Anoxic_d78$plot,levels =c('3_4','4_4','6_4','8_4','2_4','10_4','4_4_H','20_4') )
+CO2_Anoxic_d78$Sites<-factor(CO2_Anoxic_d78$Sites,levels = c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+
+## Mixed effect model
+library(Matrix)
+library(lme4)
+library(lmerTest)
+names(CO2_Anoxic_d78)
+
+#using depth as random effect, didn't use this result in paper
+CO2_Anoxic_d78_lmer<-lmer(d78~salinity*Cl_field+(1|plot/depth),data=CO2_Anoxic_d78,
+                    na.action=na.exclude)
+summary(CO2_Anoxic_d78_lmer)
+
+#only 0-5cm depth
+CO2_Anoxic_d78_0_5<-subset(CO2_Anoxic_d78,depth=="0_5")
+CO2_Anoxic_d78_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CO2_Anoxic_d78_0_5,
+                              na.action=na.exclude)
+summary(CO2_Anoxic_d78_0_5_lmer)
+
+##Below are the code for seperate the sites to oli and brac, and doing the random effect analysis seperately, probably doesn't make sense.
+# Sepatate the Oligohaline and Brackish sites
+CO2_Anoxic_d78_Oli<-subset(CO2_Anoxic_d78,Sites=="O_1"|Sites=="O_2"|Sites=="O_3"|Sites=="O_4"|Sites=="O_5")
+CO2_Anoxic_d78_Brac<-subset(CO2_Anoxic_d78,Sites=="B_1"|Sites=="B_2"|Sites=="B_3")
+CO2_Anoxic_d78_Oli$Sites<-factor(CO2_Anoxic_d78_Oli$Sites,levels =c('O_1','O_2','O_3','O_4','O_5'))
+CO2_Anoxic_d78_Oli$salinity<-factor(CO2_Anoxic_d78_Oli$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+CO2_Anoxic_d78_Brac$Sites<-factor(CO2_Anoxic_d78_Brac$Sites,levels =c('B_1','B_2','B_3'))
+CO2_Anoxic_d78_Brac$salinity<-factor(CO2_Anoxic_d78_Brac$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+names(CO2_Anoxic_d78)
+
+##subset depth 0-5cm
+CO2_Anoxic_d78_Oli_0_5<-subset(CO2_Anoxic_d78_Oli,depth=="0_5")
+CO2_Anoxic_d78_Brac_0_5<-subset(CO2_Anoxic_d78_Brac,depth=="0_5")
+
+#for oligohaline sites
+CO2_Anoxic_d78_Oli_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CO2_Anoxic_d78_Oli_0_5,na.action=na.exclude)
+summary(CO2_Anoxic_d78_Oli_0_5_lmer)
+
+#for brackish sites
+CO2_Anoxic_d78_Brac_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CO2_Anoxic_d78_Brac_0_5,na.action=na.exclude)
+summary(CO2_Anoxic_d78_Brac_0_5_lmer)
+
+### point+line plot,(using TRE.DIW, WHICH means treatment/DIW) made on 3/17/2017
+CO2_Anoxic_tre_DIW<-read.csv("data/CO2_Anoxic_tre_DIW.csv")
+names(CO2_Anoxic_tre_DIW)
+CO2_Anoxic_tre_DIW_AVE_STD_tmp<-summarySE(CO2_Anoxic_tre_DIW,measurevar = "TRE.DIW",groupvars = c("Sites","depth","salinity"))
+CO2_Anoxic_tre_DIW_AVE_STD_Cl<-summarySE(CO2_Anoxic_tre_DIW,measurevar = "Cl_field",groupvars = c("Sites","depth","salinity"))
+Cl_field<-CO2_Anoxic_tre_DIW_AVE_STD_Cl$Cl_field
+CO2_Anoxic_tre_DIW_AVE_STD<-cbind(CO2_Anoxic_tre_DIW_AVE_STD_tmp,Cl_field)
+
+#subset 0-5 depth 
+CO2_Anoxic_tre_DIW_AVE_STD_0_5<-subset(CO2_Anoxic_tre_DIW_AVE_STD,depth == '0_5')
+#reorder
+CO2_Anoxic_tre_DIW_AVE_STD_0_5$Sites<-factor(CO2_Anoxic_tre_DIW_AVE_STD_0_5$Sites,levels = c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+CO2_Anoxic_tre_DIW_AVE_STD_0_5$salinity<-factor(CO2_Anoxic_tre_DIW_AVE_STD_0_5$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+#plot
+g_point_ano <- ggplot(CO2_Anoxic_tre_DIW_AVE_STD_0_5, 
+                      aes(x=Cl_field,y=TRE.DIW,color=salinity))
+p_point_ano<-g_point_ano + 
+  geom_point()+
+  geom_line(size=1)+
+  geom_hline(yintercept = 1,color="black",linetype=2)+
+  geom_vline(xintercept = 3,color="black",linetype=2)+
+  scale_x_log10(breaks=c(0.1,0.2,2.5,5,10,19))+
+  ylim(0, 2.3)+
+  labs(y=expression(Anoxic~C~mineralization)) + 
+  geom_errorbar(aes(ymin= TRE.DIW-se, ymax=TRE.DIW+se),width=0.03,size=1)+
+  mytheme+
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position="none",
+        axis.text.x = element_text(hjust = 0.7))
+p_point_ano  
+
+
+```
+
+## Anoxic CH4 per g C
+```{r Anoxic CH4 per g C}
+CH4_Anoxic_d78<-read.csv("data/CH4_Anoxic_d78.csv")
+library(lattice)
+library(plyr)
+library(Rmisc)
+#reorder
+CH4_Anoxic_d78$salinity<-factor(CH4_Anoxic_d78$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+CH4_Anoxic_d78$plot<-factor(CH4_Anoxic_d78$plot,levels =c('3_4','4_4','6_4','8_4','2_4','10_4','4_4_H','20_4') )
+CH4_Anoxic_d78$Sites<-factor(CH4_Anoxic_d78$Sites,levels = c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+
+### Mixed effect model
+library(Matrix)
+library(lme4)
+library(lmerTest)
+names(CH4_Anoxic_d78)
+
+#using depth as random effect, didn't use this result in paper,just for reference
+CH4_Anoxic_d78_lmer<-lmer(d78~salinity*Cl_field+(1|plot/depth),data=CH4_Anoxic_d78,
+                          na.action=na.exclude)
+summary(CH4_Anoxic_d78_lmer)
+
+#subset 0-5 depth (using this result in the paper)
+CH4_Anoxic_d78_0_5<-subset(CH4_Anoxic_d78,depth=="0_5")
+CH4_Anoxic_d78_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CH4_Anoxic_d78_0_5,
+                              na.action=na.exclude)
+summary(CH4_Anoxic_d78_0_5_lmer)
+
+##Below are the code for seperate the sites to oli and brac, and doing the random effect analysis seperately, probably doesn't make sense.
+# Sepatate the Oligohaline and Brackish sites
+CH4_Anoxic_d78_Oli<-subset(CH4_Anoxic_d78,Sites=="O_1"|Sites=="O_2"|Sites=="O_3"|Sites=="O_4"|Sites=="O_5")
+CH4_Anoxic_d78_Brac<-subset(CH4_Anoxic_d78,Sites=="B_1"|Sites=="B_2"|Sites=="B_3")
+CH4_Anoxic_d78_Oli$Sites<-factor(CH4_Anoxic_d78_Oli$Sites,levels =c('O_1','O_2','O_3','O_4','O_5'))
+CH4_Anoxic_d78_Oli$salinity<-factor(CH4_Anoxic_d78_Oli$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+CH4_Anoxic_d78_Brac$Sites<-factor(CH4_Anoxic_d78_Brac$Sites,levels =c('B_1','B_2','B_3'))
+CH4_Anoxic_d78_Brac$salinity<-factor(CH4_Anoxic_d78_Brac$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+names(CH4_Anoxic_d78)
+
+##subset 0-5 depth
+CH4_Anoxic_d78_Oli_0_5<-subset(CH4_Anoxic_d78_Oli,depth=="0_5")
+CH4_Anoxic_d78_Brac_0_5<-subset(CH4_Anoxic_d78_Brac,depth=="0_5")
+#for oligohaline sites
+CH4_Anoxic_d78_Oli_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CH4_Anoxic_d78_Oli_0_5,
+                                  na.action=na.exclude)
+summary(CH4_Anoxic_d78_Oli_0_5_lmer)
+#for brackish sites
+CH4_Anoxic_d78_Brac_0_5_lmer<-lmer(d78~salinity*Cl_field+(1|plot),data=CH4_Anoxic_d78_Brac_0_5,
+                                   na.action=na.exclude)
+summary(CH4_Anoxic_d78_Brac_0_5_lmer)
+
+###plot,(using TRE.DIW, WHICH means treatment/DIW) made on 3/17/2017
+CH4_Anoxic_tre_DIW<-read.csv("data/CH4_Anoxic_tre_DIW.csv")
+names(CH4_Anoxic_tre_DIW)
+CH4_Anoxic_tre_DIW_AVE_STD_tmp<-summarySE(CH4_Anoxic_tre_DIW,measurevar = "TRE.DIW",groupvars = c("Sites","depth","salinity"))
+CH4_Anoxic_tre_DIW_AVE_STD_Cl<-summarySE(CH4_Anoxic_tre_DIW,measurevar = "Cl_field",groupvars = c("Sites","depth","salinity"))
+Cl_field<-CH4_Anoxic_tre_DIW_AVE_STD_Cl$Cl_field
+CH4_Anoxic_tre_DIW_AVE_STD<-cbind(CH4_Anoxic_tre_DIW_AVE_STD_tmp,Cl_field)
+
+#subset 0-5 depth
+CH4_Anoxic_tre_DIW_AVE_STD_0_5<-subset(CH4_Anoxic_tre_DIW_AVE_STD,depth == '0_5')
+
+#reorder
+CH4_Anoxic_tre_DIW_AVE_STD_0_5$Sites<-factor(CH4_Anoxic_tre_DIW_AVE_STD_0_5$Sites,levels = c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+CH4_Anoxic_tre_DIW_AVE_STD_0_5$salinity<-factor(CH4_Anoxic_tre_DIW_AVE_STD_0_5$salinity,levels = c('DIW','ASW','ASW-SO4','DIW+SO4'))
+#plot
+names(CH4_Anoxic_tre_DIW_AVE_STD_0_5)
+g_point_CH4 <- ggplot(CH4_Anoxic_tre_DIW_AVE_STD_0_5, 
+                      aes(x=Cl_field,y=TRE.DIW,color=salinity))
+p_point_CH4<-g_point_CH4 + 
+  geom_point()+
+  geom_line(size=1)+
+  geom_hline(yintercept = 1,color="black",linetype=2)+
+  geom_vline(xintercept = 3,color="black",linetype=2)+
+  scale_x_log10(breaks=c(0.1,0.2,2.5,5,10,19))+
+  ylim(0,2.3)+
+  labs(x=expression(Soil~Cl^{"-"}~concentration~'('~mg~g~dry~soil^{-1}~')'),
+       y=expression(Anoxic~CH[4]~potential)) + 
+  geom_errorbar(aes(ymin= TRE.DIW-se, ymax=TRE.DIW+se),width=0.03,size=1)+
+  mytheme+
+  theme( legend.position="none",
+         axis.text.x = element_text(hjust = 0.7))
+p_point_CH4
+
+
+```
+

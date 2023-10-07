@@ -1,0 +1,126 @@
+---
+title: "All subset model  (8 selected field sites)"
+output: html_document
+---
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+field_selected<-read.csv("data/field_selected.csv")
+#reorder
+field_selected$Sites<-factor(field_selected$Sites,levels =c('O_1','O_2','O_3','O_4','O_5','B_1','B_2','B_3'))
+#subset 0-5 depth
+field_selected_0_5<-subset(field_selected, Depth=="0_5")
+
+
+#### Multiple regression
+library(leaps)
+
+##Oxic CO2 per g soil, 0-5cm depth
+Oxic_CO2_d.regsubsets.out <-
+  regsubsets(Oxic_CO2_d ~ Cl + SIR_mg_d +AFDM +Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Oxic_CO2_d.summary.out<-summary(Oxic_CO2_d.regsubsets.out)
+library(car)
+which.max(Oxic_CO2_d.summary.out$adjr2)
+Oxic_CO2_d.summary.out
+Oxic_CO2_d.summary.out$which[4,]
+Oxic_CO2_d.best.model<-lm(Oxic_CO2_d ~ Cl+AFDM+Water.content+pH,data = field_selected_0_5)
+summary(Oxic_CO2_d.best.model)
+
+
+##Oxic CO2 per g C, 0-5cm depth
+Oxic_CO2.AFDM_d.regsubsets.out <-
+  regsubsets(Oxic_CO2.AFDM_d ~ Cl  + SIR_mg_d + Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Oxic_CO2.AFDM_d.summary.out<-summary(Oxic_CO2.AFDM_d.regsubsets.out)
+library(car)
+which.max(Oxic_CO2.AFDM_d.summary.out$adjr2)
+Oxic_CO2.AFDM_d.summary.out
+Oxic_CO2.AFDM_d.summary.out$which[3,]
+Oxic_CO2.AFDM_d.best.model<-lm(Oxic_CO2.AFDM_d ~ Cl+SIR_mg_d+Water.content,data = field_selected_0_5)
+summary(Oxic_CO2.AFDM_d.best.model)
+
+
+##Anoxic_CO2 rate per g soil, 0-5cm depth
+
+Anoxic_CO2_d.regsubsets.out <-
+  regsubsets(Anoxic_CO2_d ~ Cl  + SIR_mg_d + AFDM+Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Anoxic_CO2_d.summary.out<-summary(Anoxic_CO2_d.regsubsets.out)
+
+library(car)
+which.max(Anoxic_CO2_d.summary.out$adjr2)
+Anoxic_CO2_d.summary.out
+Anoxic_CO2_d.summary.out$which[3,]
+Anoxic_CO2_d.best.model<-lm(Anoxic_CO2_d ~ SIR_mg_d+AFDM+ Water.content+pH,data = field_selected_0_5)
+summary(Anoxic_CO2_d.best.model)
+
+
+##Anoxic CO2 per gram C, 0-5 depth
+Anoxic_CO2.AFDM_d.regsubsets.out <-
+  regsubsets(Anoxic_CO2.AFDM_d ~ Cl + SIR_mg_d + Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Anoxic_CO2.AFDM_d.summary.out<-summary(Anoxic_CO2.AFDM_d.regsubsets.out)
+
+library(car)
+which.max(Anoxic_CO2.AFDM_d.summary.out$adjr2)
+Anoxic_CO2.AFDM_d.summary.out
+Anoxic_CO2.AFDM_d.summary.out$which[2,]
+Anoxic_CO2.AFDM_d.best.model<-lm(Anoxic_CO2.AFDM_d ~ Cl+ SIR_mg_d,data = field_selected_0_5)
+summary(Anoxic_CO2.AFDM_d.best.model)
+
+##Anoxic CH4 per gram soil, 0-5 cm depth
+Anoxic_CH4_d.regsubsets.out <-
+  regsubsets(Anoxic_CH4_d ~ Cl+ SIR_mg_d + AFDM+Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Anoxic_CH4_d.summary.out<-summary(Anoxic_CH4_d.regsubsets.out)
+
+library(car)
+which.max(Anoxic_CH4_d.summary.out$adjr2)
+Anoxic_CH4_d.summary.out
+Anoxic_CH4_d.summary.out$which[4,]
+Anoxic_CH4_d.best.model<-lm(Anoxic_CH4_d ~ Cl+SIR_mg_d+Water.content+pH,data = field_selected_0_5)
+summary(Anoxic_CH4_d.best.model)
+
+
+##Anoxic CH4 per gram C, 0-5 cm depth
+Anoxic_CH4.AFDM_d.regsubsets.out <-
+  regsubsets(Anoxic_CH4.AFDM_d ~ Cl+ SIR_mg_d +Water.content+pH,
+             data = field_selected_0_5,
+             nbest = 1,       # 1 best model for each number of predictors
+             nvmax = NULL,    # NULL for no limit on number of variables
+             force.in = NULL, force.out = NULL,
+             method = "exhaustive")
+Anoxic_CH4.AFDM_d.summary.out<-summary(Anoxic_CH4.AFDM_d.regsubsets.out)
+
+library(car)
+which.max(Anoxic_CH4.AFDM_d.summary.out$adjr2)
+Anoxic_CH4.AFDM_d.summary.out
+Anoxic_CH4.AFDM_d.summary.out$which[3,]
+Anoxic_CH4.AFDM_d.best.model<-lm(Anoxic_CH4.AFDM_d ~ Cl+Water.content+pH,data = field_selected_0_5)
+summary(Anoxic_CH4.AFDM_d.best.model)
+
+```
+
+
+

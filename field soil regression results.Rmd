@@ -1,0 +1,251 @@
+---
+title: "Correlation between AFDM, SIR,Water content and CL, SO4 in field soil data"
+output: html_document
+---
+
+```{r field soil data}
+knitr::opts_chunk$set(echo = TRUE)
+
+fieldtogether<-read.csv("data/field together.csv")
+#subset 0-5 depth 
+fieldtogether_0_5<-subset(fieldtogether,depth=="0_5")
+#subset 8 selected sites
+field_selected_0_5<-subset(fieldtogether_0_5,plot=="2"|plot=='3'|plot=='4'|plot=='20'|plot=='4_4'|plot=='6_4'|plot=='8_4'|plot=='10_4')
+
+names(fieldtogether)
+
+# Correlation between Cl & AFDM
+library(lattice)
+library(plyr)
+library(Rmisc)
+AFDM_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("AFDM"),groupvars = c("plot","depth"))
+AFDM_ave<-AFDM_AVE_STD$AFDM
+AFDM_se<-AFDM_AVE_STD$se
+Cl_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("Cl"),groupvars = c("plot","depth"))
+Cl_ave<-Cl_AVE_STD$Cl
+Cl_se<-Cl_AVE_STD$se
+SO4_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("SO4"),groupvars = c("plot","depth"))
+SO4_ave<-SO4_AVE_STD$SO4
+SO4_se<-SO4_AVE_STD$se
+AFDM_cl_so4_AVE_STD<-cbind(AFDM_AVE_STD,Cl_ave,Cl_se,SO4_ave,SO4_se)
+field_selected_AFDM<-subset(AFDM_cl_so4_AVE_STD,plot=="2"|plot=='3'|plot=='4'|plot=='20'|plot=='4_4'|plot=='6_4'|plot=='8_4'|plot=='10_4')
+field_selected_AFDM$plot<-factor(field_selected_AFDM$plot,levels =c('3','4_4','6_4','8_4','2','10_4','4','20'))
+names(field_selected_AFDM)
+
+library(ggplot2)
+mytheme<- theme_bw()+
+  theme(text = element_text(size=14, lineheight=.8))+
+  theme(panel.border = element_rect(colour = "black", size = 1)) +
+  theme(legend.key = element_rect(fill = "white",colour = "white"))+
+  theme(axis.title.x = element_text( size = 16)) +
+  theme(axis.title.y = element_text( size = 20)) +
+  theme(axis.text.x = element_text(size = 18, color = "black")) +
+  theme(axis.text.y = element_text(size = 18, color = "black")) +
+  theme(axis.line.x = element_blank()) +
+  theme(axis.line.y = element_blank()) +
+  theme(panel.grid = element_blank())
+scaleFUN <- function(x) sprintf("%.1f", x) #modify the y axis label
+p_AFDM <- ggplot(AFDM_cl_so4_AVE_STD,
+             aes(x=Cl_ave,y=AFDM)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=AFDM-se,ymax=AFDM+se),color="#666666",width=0.2) + 
+  geom_errorbarh(aes(xmin=Cl_ave-Cl_se,xmax=Cl_ave+Cl_se),color="#666666",height = 0.02)+
+  geom_point(data=field_selected_AFDM, aes(x=Cl_ave, y=AFDM,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+   geom_smooth(data=field_selected_AFDM,aes(Cl_ave,AFDM),
+               method=lm,se=FALSE,color="red") +
+  mytheme+
+  theme(legend.position="none")+
+  theme(axis.title.x=element_blank())+
+  scale_y_continuous(labels=scaleFUN)+
+  labs(y=expression(AFDM~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 13.5, y = 0.323, 
+           label =  "R^2==0.61~~P<0.001",
+           color="red", size = 6, parse=TRUE)+
+  annotate("text", x = 19, y = 0.95, 
+           label =  paste("A"),
+           color="black", size = 6, parse=FALSE)
+p_AFDM
+summary(lm(fieldtogether_0_5$AFDM~fieldtogether_0_5$Cl,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$Cl,fieldtogether_0_5$AFDM)
+summary(lm(field_selected_0_5$AFDM~field_selected_0_5$Cl,field_selected_0_5))
+
+# SO4 & AFDM
+p_AFDM1 <- ggplot(AFDM_cl_so4_AVE_STD,
+                 aes(x=SO4_ave,y=AFDM)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=AFDM-se,ymax=AFDM+se),color="#666666",width=0.035) + 
+  geom_errorbarh(aes(xmin=SO4_ave-SO4_se,xmax=SO4_ave+SO4_se),color="#666666",height = 0.025)+
+  geom_point(data=field_selected_AFDM, aes(x=SO4_ave, y=AFDM,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+  geom_smooth(data=field_selected_AFDM,aes(SO4_ave,AFDM),method=lm, color="red",  # Add linear regression line
+              se=FALSE) +
+  mytheme+
+  theme(legend.position="none")+
+  theme(axis.title.x=element_blank())+
+  scale_y_continuous(labels=scaleFUN)+
+  labs(y=expression(AFDM~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 1.4, y = 0.33, 
+           label =  "R^2==0.44~~P<0.001",
+           color="red", size = 6, parse=TRUE)+
+  annotate("text", x = 2.2, y = 0.95, 
+           label =  paste("B"),
+           color="black", size = 6, parse=FALSE)
+p_AFDM1
+summary(lm(fieldtogether_0_5$AFDM~fieldtogether_0_5$SO4,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$SO4,fieldtogether_0_5$AFDM)
+summary(lm(field_selected_0_5$AFDM~field_selected_0_5$SO4,field_selected_0_5))
+
+###Cl & SIR
+library(lattice)
+library(plyr)
+library(Rmisc)
+
+SIR_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("SIR"),groupvars = c("plot","depth"))
+SIR_ave<-SIR_AVE_STD$SIR
+SIR_se<-SIR_AVE_STD$se
+Cl_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("Cl"),groupvars = c("plot","depth"))
+Cl_ave<-Cl_AVE_STD$Cl
+Cl_se<-Cl_AVE_STD$se
+SO4_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("SO4"),groupvars = c("plot","depth"))
+SO4_ave<-SO4_AVE_STD$SO4
+SO4_se<-SO4_AVE_STD$se
+SIR_cl_so4_AVE_STD<-cbind(SIR_AVE_STD,Cl_ave,Cl_se,SO4_ave,SO4_se)
+field_selected_SIR<-subset(SIR_cl_so4_AVE_STD,plot=="2"|plot=='3'|plot=='4'|plot=='20'|plot=='4_4'|plot=='6_4'|plot=='8_4'|plot=='10_4')
+field_selected_SIR$plot<-factor(field_selected_SIR$plot,levels =c('3','4_4','6_4','8_4','2','10_4','4','20'))
+names(field_selected_SIR)
+library(ggplot2)
+p_SIR <- ggplot(SIR_cl_so4_AVE_STD,
+             aes(x=Cl_ave,y=SIR)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=SIR-se,ymax=SIR+se),color="#666666",width=0.2) + 
+  geom_errorbarh(aes(xmin=Cl_ave-Cl_se,xmax=Cl_ave+Cl_se),color="#666666",height = 0.02)+
+  geom_point(data=field_selected_SIR, aes(x=Cl_ave, y=SIR,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+  geom_smooth(data=field_selected_SIR,aes(Cl_ave,SIR),method=lm,color="red",  # Add linear regression line
+              se=FALSE) +
+  mytheme+
+  theme(legend.position="none")+
+  scale_y_continuous(labels=scaleFUN)+
+  theme(axis.title.x=element_blank())+
+  labs(y=expression(SIR~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 19, y = 3.65, 
+           label =  paste("C"),
+           color="black", size = 6, parse=FALSE)+
+  annotate("text", x = 13.5, y = 1.43, 
+           label =  "R^2==0.45~~P<0.001",
+           color="red", size = 6, parse=TRUE)
+p_SIR
+summary(lm(fieldtogether_0_5$SIR~fieldtogether_0_5$Cl,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$Cl,fieldtogether_0_5$SIR)
+summary(lm(field_selected_0_5$SIR~field_selected_0_5$Cl,field_selected_0_5))
+
+
+# SO4 & SIR
+p_SIR1 <- ggplot(SIR_cl_so4_AVE_STD,
+                aes(x=SO4_ave,y=SIR)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=SIR-se,ymax=SIR+se),color="#666666",width=0.035) + 
+  geom_errorbarh(aes(xmin=SO4_ave-SO4_se,xmax=SO4_ave+SO4_se),color="#666666",height = 0.075)+
+  geom_point(data=field_selected_SIR, aes(x=SO4_ave, y=SIR,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+  geom_smooth(data=field_selected_SIR,aes(SO4_ave,SIR),method=lm,   # Add linear regression line
+              se=FALSE,color="red") +
+  mytheme+
+  theme(legend.position="none")+
+  theme(axis.title.x=element_blank())+
+  scale_y_continuous(labels=scaleFUN)+
+  labs(y=expression(SIR~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 2.2, y = 3.65, 
+           label =  paste("D"),
+           color="black", size = 6, parse=FALSE)+
+  annotate("text", x = 1.5, y = 1.1, 
+           label =  "R^2==0.28~~P<0.01",
+           color="red", size = 6, parse=TRUE)
+p_SIR1
+summary(lm(fieldtogether_0_5$SIR~fieldtogether_0_5$SO4,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$Cl,fieldtogether_0_5$SIR)
+summary(lm(field_selected_0_5$SIR~field_selected_0_5$SO4,field_selected_0_5))
+
+
+### Cl & water content
+library(lattice)
+library(plyr)
+library(Rmisc)
+
+Water.content_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("Water.content"),groupvars = c("plot","depth"))
+Water.content_ave<-Water.content_AVE_STD$Water.content
+Water.content_se<-Water.content_AVE_STD$se
+Cl_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("Cl"),groupvars = c("plot","depth"))
+Cl_ave<-Cl_AVE_STD$Cl
+Cl_se<-Cl_AVE_STD$se
+SO4_AVE_STD<-summarySE(fieldtogether_0_5,measurevar = c("SO4"),groupvars = c("plot","depth"))
+SO4_ave<-SO4_AVE_STD$SO4
+SO4_se<-SO4_AVE_STD$se
+Water.content_cl_so4_AVE_STD<-cbind(Water.content_AVE_STD,Cl_ave,Cl_se,SO4_ave,SO4_se)
+field_selected_Water.content<-subset(Water.content_cl_so4_AVE_STD,plot=="2"|plot=='3'|plot=='4'|plot=='20'|plot=='4_4'|plot=='6_4'|plot=='8_4'|plot=='10_4')
+field_selected_Water.content$plot<-factor(field_selected_Water.content$plot,levels =c('3','4_4','6_4','8_4','2','10_4','4','20'))
+
+library(ggplot2)
+p_Water.content <- ggplot(Water.content_cl_so4_AVE_STD,
+             aes(x=Cl_ave,y=Water.content)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=Water.content-se,ymax=Water.content+se),color="#666666",width=0.2) + 
+  geom_errorbarh(aes(xmin=Cl_ave-Cl_se,xmax=Cl_ave+Cl_se),color="#666666",height = 0.02)+
+  geom_point(data=field_selected_Water.content, aes(x=Cl_ave, y=Water.content,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+  geom_smooth(method = "lm",se=FALSE,color="grey")+
+  geom_smooth(data=field_selected_Water.content,aes(Cl_ave,Water.content),method=lm,   # Add linear regression line
+              se=FALSE,color="red") +
+  mytheme+
+  theme(legend.position="none")+
+  scale_y_continuous(labels=scaleFUN)+
+  labs(x=expression(Soil~Cl^{"-"}~concentration~'('~mg~g~dry~soil^{-1}~')'), 
+              y=expression(Water~content~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 11.3, y = 1, 
+           label =  "R^2==0.16~~P<0.001",
+           color="#666666", size = 6, parse=TRUE)+
+  annotate("text", x = 19, y = 0.98, 
+           label =  paste("E"),
+           color="black", size = 6, parse=FALSE)+
+  annotate("text", x = 13.5, y = 0.58, 
+           label =  "R^2==0.62~~P<0.001",
+           color="red", size = 6, parse=TRUE)
+p_Water.content
+summary(lm(fieldtogether_0_5$Water.content~fieldtogether_0_5$Cl,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$Cl,fieldtogether_0_5$Water.content)
+summary(lm(field_selected_0_5$Water.content~field_selected_0_5$Cl,field_selected_0_5))
+
+
+
+#SO4 & Water content
+p_Water.content1 <- ggplot(Water.content_cl_so4_AVE_STD,
+                          aes(x=SO4_ave,y=Water.content)) + 
+  geom_point(size=5,color="grey") +
+  geom_errorbar(aes(ymin=Water.content-se,ymax=Water.content+se),color="#666666",width=0.035) + 
+  geom_errorbarh(aes(xmin=SO4_ave-SO4_se,xmax=SO4_ave+SO4_se),color="#666666",height = 0.025)+
+  geom_smooth(method=lm,   # Add linear regression line
+              se=FALSE,color="grey") +
+  geom_point(data=field_selected_Water.content, aes(x=SO4_ave, y=Water.content,color=plot), size=5)+
+  scale_colour_brewer(palette="YlOrRd")+
+  geom_smooth(data=field_selected_Water.content,aes(SO4_ave,Water.content),method=lm,   # Add linear regression line
+              se=FALSE,color="red")+
+  mytheme+
+  theme(legend.position="none")+
+  scale_y_continuous(labels=scaleFUN)+
+  labs(x=expression(Soil~SO[4]^{"2-"}~concentration~'('~mg~g~dry~soil^{-1}~')'), 
+       y=expression(Water~content~'('~g~g~dry~soil^{-1}~')'))+
+  annotate("text", x = 1.1, y = 0.97, 
+           label =  "R^2==0.15~~P<0.001",
+           color="#666666", size = 6, parse=TRUE)+
+  annotate("text", x = 2.2, y = 0.98, 
+           label =  paste("F"),
+           color="black", size = 6, parse=FALSE)+
+  annotate("text", x = 1.3, y = 0.56, 
+           label =  "R^2==0.48~~P<0.001",
+           color="red", size = 6, parse=TRUE)
+p_Water.content1
+summary(lm(fieldtogether_0_5$Water.content~fieldtogether_0_5$SO4,fieldtogether_0_5))
+cor.test(fieldtogether_0_5$SO4,fieldtogether_0_5$Water.content)
+summary(lm(field_selected_0_5$Water.content~field_selected_0_5$SO4,field_selected_0_5))
+```
